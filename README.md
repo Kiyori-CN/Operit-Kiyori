@@ -3,7 +3,7 @@
 > **版本**：v1.0  
 > **适用**：Operit v1.9.x+  
 > **定位**：作为 SKILL 文件注入 Agent System Prompt，指导 AI 自主开发符合规范的 Operit 工具包  
-> **源码基础**：从 20+ 个生产级工具包源码中提炼（bilibili_search、csdn_search、various_search、web、code_runner、workflow、extended_memory_tools、beeimg_upload、baidumap_navigation、recipe_search、zhipu_search、developer_search、anime_search、userscript_search、ikbs_pysearch、image_search、arxiv_assistant、weather_reporter 等）  
+> **源码基础**：从 20+ 个生产级工具包源码中提炼（bilibili_search、csdn_search、various_search、web、code_runner、workflow、extended_memory_tools、extended_file_tools、extended_http_tools、extended_chat、super_admin、all_about_myself、operit_search、deepwiki_search、beeimg_upload、baidumap_navigation、recipe_search、zhipu_search、developer_search、anime_search、userscript_search、ikbs_pysearch、image_search、arxiv_assistant、weather_reporter 等）  
 > **核心原则**：一切以最新生产代码实例为准；规范优先，安全不可妥协
 
 ---
@@ -56,7 +56,8 @@
   - [5.7 CryptoJS 加密库](#57-cryptojs-加密库)
   - [5.8 Tools.Net.Web 浏览器操作](#58-toolsnetweb-浏览器操作)
   - [5.9 Tools.visit_web 页面访问](#59-toolsvisit_web-页面访问)
-  - [5.10 跨工具包调用](#510-跨工具包调用)
+  - [5.10 Tools.Memory 记忆操作](#510-toolsmemory-记忆操作)
+  - [5.11 跨工具包调用](#511-跨工具包调用)
 - [第六章 设计模式与最佳实践](#第六章-设计模式与最佳实践)
   - [6.1 环境变量读取模式](#61-环境变量读取模式)
   - [6.2 反向代理支持模式](#62-反向代理支持模式)
@@ -111,6 +112,7 @@
   - [12.1 标准开发流程](#121-标准开发流程)
   - [12.2 文件部署](#122-文件部署)
   - [12.3 enabledByDefault 策略](#123-enabledbydefault-策略)
+  - [12.4 main() 自测函数](#124-main-自测函数)
 - [第十三章 TypeScript 开发支持](#第十三章-typescript-开发支持)
 - [第十四章 高级模式](#第十四章-高级模式)
   - [14.1 嵌入向量索引](#141-嵌入向量索引)
@@ -126,6 +128,13 @@
   - [15.1 METADATA 中的多语言](#151-metadata-中的多语言)
   - [15.2 运行时语言检测](#152-运行时语言检测)
 - [第十六章 ToolPkg 打包格式](#第十六章-toolpkg-打包格式)
+  - [16.1 什么是 ToolPkg](#161-什么是-toolpkg)
+  - [16.2 文件结构](#162-文件结构)
+  - [16.3 manifest.json 核心字段](#163-manifestjson-核心字段)
+  - [16.4 main.js 入口与注册](#164-mainjs-入口与注册)
+  - [16.5 ToolPkg 注册 API 速查](#165-toolpkg-注册-api-速查)
+  - [16.6 Compose DSL UI 模块](#166-compose-dsl-ui-模块)
+  - [16.7 打包与部署](#167-打包与部署)
 - [第十七章 案例索引](#第十七章-案例索引)
 - [附录 A：全局常量/变量参考](#附录-a全局常量变量参考)
 - [附录 B：JSONP 解析技巧](#附录-bjsonp-解析技巧)
@@ -266,7 +275,7 @@ METADATA 必须以 `/* METADATA` 开头、`*/` 结尾，**置于文件最顶部*
         "en": "English description — detail core capabilities, features, and use cases."
     },
     "enabledByDefault": false,
-    "category": "NETWORK",
+    "category": "Network",
     "author": "Your Name",
     "env": [...],
     "tools": [...]
@@ -290,23 +299,23 @@ METADATA 必须以 `/* METADATA` 开头、`*/` 结尾，**置于文件最顶部*
 
 ### 2.3 category 有效枚举
 
-**仅限以下 14 个分类**（必须首字母大写，其余字母小写，如 `"Admin"`是合法的，如`"admin"`、`"ADMIN"` 均不合法）：
+**仅限以下 14 个分类**（Title Case 格式：首字母大写，其余小写，如 `"Admin"` 合法，`"admin"` 和 `"ADMIN"` 均不合法）：
 
 ```
-AUTOMATIC    — 自动化流程、定时任务
-DRAW         — 绘图、图像生成
-CHAT         — 聊天增强、对话管理
-DEVELOPMENT  — 代码执行、开发辅助
-FILE         — 文件处理、上传下载
-LIFE         — 生活服务（天气、食谱、日历等）
-MEDIA        — 多媒体处理（音视频、图片）
-MEMORY       — 记忆管理、知识库
-NETWORK      — 网络请求、API 调用
-SEARCH       — 搜索引擎、信息检索
-SYSTEM       — 系统管理、设备控制
-UTILITY      — 通用工具（加解密、格式转换等）
-WORKFLOW     — 工作流编排
-ADMIN        — 管理/综合类（生产级多数工具包使用此分类）
+Automatic    — 自动化流程、定时任务
+Draw         — 绘图、图像生成
+Chat         — 聊天增强、对话管理
+Development  — 代码执行、开发辅助
+File         — 文件处理、上传下载
+Life         — 生活服务（天气、食谱、日历等）
+Media        — 多媒体处理（音视频、图片）
+Memory       — 记忆管理、知识库
+Network      — 网络请求、API 调用
+Search       — 搜索引擎、信息检索
+System       — 系统管理、设备控制
+Utility      — 通用工具（加解密、格式转换等）
+Workflow     — 工作流编排
+Admin        — 管理/综合类（生产级多数工具包使用此分类）
 ```
 
 分类选择建议：由用户自行开发的工具包默认采用 `"Admin"` 作为通用分类。
@@ -464,7 +473,9 @@ ADMIN        — 管理/综合类（生产级多数工具包使用此分类）
 }
 ```
 
-生产实例：workflow.js 中的 `usage_advice` 工具包含了大量的工作流节点类型说明、参数引用规则、分支连线语义等指导信息，全部写在 description 中供 AI 参考。
+生产实例：workflow.js 中的 `usage_advice` 工具包含了大量的工作流节点类型说明、参数引用规则、分支连线语义等指导信息，全部写在 description 中供 AI 参考。all_about_myself.js 中的 `all_about_myself` 工具则将整套 MCP/Skill/Package 排查手册和配置指南写入 description，长度可达数千字。
+
+**advice 工具的 description 无长度限制**，可以包含完整的排查手册、配置指南、概念说明等结构化知识，AI 会在匹配到用户意图时自动参考这些内容。
 
 ### 2.8 宽松 JSON（HJSON）支持
 
@@ -478,6 +489,62 @@ METADATA 解析器支持以下宽松语法：
 - **省略逗号**（换行隔开）：HJSON 默认行为
 
 **建议**：新工具包优先使用标准 JSON 格式以获得最大兼容性。宽松格式适合快速原型和大量文本内容的场景。
+
+生产实例（code_runner.js — HJSON 格式完整示例）：
+
+```javascript
+/* METADATA
+{
+  name: code_runner
+  display_name: {
+    zh: "代码运行器"
+    en: "Code Runner"
+  }
+  description: { zh: "提供多语言代码执行能力...", en: "Multi-language code execution..." }
+  enabledByDefault: true
+  category: "Development"
+  // 注释：以下是工具声明
+  tools: [
+    {
+      name: run_javascript_es5
+      description: { zh: "运行自定义 JavaScript (ES5) 脚本。", en: "Run custom JavaScript (ES5)." }
+      parameters: [
+        {
+          name: script
+          description: { zh: "要执行的脚本内容", en: "Script content to execute." }
+          type: string
+          required: true
+        }
+      ]
+    }
+  ]
+}
+*/
+```
+
+注意上例中：键名无引号、字符串值无引号、省略逗号（换行隔开）、含单行注释。
+
+生产实例（all_about_myself.js — 三引号多行字符串）：
+
+```javascript
+/* METADATA
+{
+  name: "all_about_myself"
+  display_name: { zh: "Operit配置编辑器", en: "Operit Config Editor" }
+  description: {
+    zh: '''软件设置直改工具包：提供一组可直接读取
+    与修改 Operit 设置的工具，覆盖 MCP、Skill、
+    Sandbox Package 等配置。'''
+    en: '''Direct software-settings toolkit...'''
+  }
+  enabledByDefault: true
+  "category": "Chat",
+  tools: [...]
+}
+*/
+```
+
+注意上例中：三引号 `'''` 包裹的多行字符串、混合使用有引号/无引号键名。
 
 ### 2.9 description 编写最佳实践
 
@@ -1061,7 +1128,7 @@ if (results.length === 0) {
 | `getEnv(key)`                    | 读取环境变量，返回 string 或 null               |
 | `getLang()`                      | 获取当前语言环境（如 `"zh"`, `"en"`）           |
 | `sendIntermediateResult(result)` | 推送中间进度（使用前检查 typeof）               |
-| `toolCall(toolName, params)`     | 跨包调用其他工具（如 `use_package`）            |
+| `toolCall(name, params)` 或 `toolCall({name, params})`     | 跨包调用其他工具，支持两种签名            |
 | `console.log/warn/error(...)`    | 日志输出（调试用）                              |
 
 ### 5.2 OkHttp 网络请求
@@ -1114,12 +1181,16 @@ async function httpPostForm(url, formData, headers) {
 
 Response 对象属性：
 
-| 属性/方法                 | 返回类型 | 说明             |
-| ------------------------- | -------- | ---------------- |
-| `response.isSuccessful()` | boolean  | HTTP 2xx 为 true |
-| `response.statusCode`     | number   | HTTP 状态码      |
-| `response.statusMessage`  | string   | HTTP 状态消息    |
-| `response.content`        | string   | 响应体字符串     |
+| 属性/方法                 | 返回类型 | 说明                     |
+| ------------------------- | -------- | ------------------------ |
+| `response.isSuccessful()` | boolean  | HTTP 2xx 为 true         |
+| `response.statusCode`     | number   | HTTP 状态码              |
+| `response.statusMessage`  | string   | HTTP 状态消息            |
+| `response.content`        | string   | 响应体字符串             |
+| `response.headers`        | object   | 响应头对象               |
+| `response.contentType`    | string   | Content-Type 头值        |
+| `response.url`            | string   | 最终请求 URL（含重定向） |
+| `response.size`           | number   | 响应体大小               |
 
 ### 5.3 Tools.Net 网络操作
 
@@ -1155,6 +1226,13 @@ await Tools.Files.writeBinary(savePath, base64String); // 写入二进制
 await Tools.Files.mkdir(dirPath, true, "android"); // 创建目录
 await Tools.Files.list(dirPath, "android"); // 列出目录 → { entries }
 await Tools.Files.download(url, savePath); // 下载文件
+await Tools.Files.move(source, destination, env);    // 移动/重命名
+await Tools.Files.copy(source, dest, recursive, srcEnv, dstEnv); // 复制（支持跨环境）
+await Tools.Files.info(path, env);                   // 获取文件/目录信息
+await Tools.Files.zip(source, destination, env);     // 压缩
+await Tools.Files.unzip(source, destination, env);   // 解压
+await Tools.Files.open(path, env);                   // 用系统默认应用打开
+await Tools.Files.share(path, title, env);           // 分享文件给其他应用
 ```
 
 **重要**：第二个参数 `'android'` 指定 Android 文件系统侧。路径不要混用两侧。
@@ -1170,6 +1248,14 @@ const result = await Tools.System.terminal.exec(
   timeoutMs,
 );
 // result → { output, exitCode, timedOut, sessionId }
+
+// 获取当前终端屏幕（仅可见内容，不含历史滚动）
+const screenContent = await Tools.System.terminal.screen(session.sessionId);
+
+// 向终端写入输入或发送控制键
+await Tools.System.terminal.input(session.sessionId, { input: "text" });
+await Tools.System.terminal.input(session.sessionId, { control: "enter" });
+await Tools.System.terminal.input(session.sessionId, { input: "c", control: "ctrl" }); // Ctrl+C
 
 // Shell 命令（Shizuku/Root）
 const shellResult = await Tools.System.shell(command);
@@ -1262,13 +1348,76 @@ const res = await Tools.visit_web({
 // res.content — 页面文本内容
 ```
 
-### 5.10 跨工具包调用
+### 5.10 Tools.Memory 记忆操作
 
 ```javascript
-const result = await toolCall("use_package", { package_name: "some_package" });
+// 创建记忆节点
+await Tools.Memory.create(title, content, contentType, source, folderPath, tags);
+
+// 更新记忆节点（按标题定位）
+await Tools.Memory.update(oldTitle, {
+  newTitle, content, contentType, source, credibility, importance, folderPath, tags
+});
+
+// 删除记忆节点
+await Tools.Memory.deleteMemory(title);
+
+// 批量移动记忆到新文件夹
+await Tools.Memory.move(targetFolderPath, titlesArray, sourceFolderPath);
+
+// 创建记忆链接
+await Tools.Memory.link(sourceTitle, targetTitle, linkType, weight, description);
+
+// 查询记忆链接
+await Tools.Memory.queryLinks(linkId, sourceTitle, targetTitle, linkType, limit);
+
+// 更新记忆链接
+await Tools.Memory.updateLink(linkId, sourceTitle, targetTitle, linkType, newLinkType, weight, description);
+
+// 删除记忆链接
+await Tools.Memory.deleteLink(linkId, sourceTitle, targetTitle, linkType);
 ```
 
-`use_package` 是三兼容入口，可统一加载 MCP / Skill / Sandbox Package。
+### 5.11 跨工具包调用
+
+`toolCall` 用于调用当前包以外的工具，支持两种调用签名：
+
+**签名 A：双参数形式（推荐）**
+
+```javascript
+const result = await toolCall("tool_name", { param1: "value1" });
+```
+
+生产实例（extended_chat.js）：
+
+```javascript
+const listResult = await toolCall('list_chats', { query: keyword, limit: 50 });
+const findResult = await toolCall('find_chat', { query: title, match: 'contains' });
+```
+
+**签名 B：对象形式**
+
+```javascript
+const result = await toolCall({ name: "tool_name", params: { param1: "value1" } });
+```
+
+生产实例（extended_http_tools.js）：
+
+```javascript
+const result = await toolCall({ name: "http_request", params: toolParams });
+```
+
+**常用内置工具调用**：
+
+```javascript
+// 加载其他工具包（三兼容入口：MCP / Skill / Sandbox Package）
+const result = await toolCall("use_package", { package_name: "some_package" });
+
+// 调用聊天管理工具
+await toolCall('create_new_chat', { title: "新对话" });
+await toolCall('send_message_to_ai', { chat_id: id, message: "内容" });
+await toolCall('get_chat_messages', { chat_id: id, limit: 20 });
+```
 
 ---
 
@@ -2041,7 +2190,7 @@ if (!existsInfo.exists) throw new Error(`找不到本地文件: ${filePath}`);
 □ METADATA JSON 语法正确
 □ name 字段与文件名一致且为小写下划线格式
 □ description 包含 zh 和 en 双语，描述详细、关键词丰富
-□ category 值在 14 个有效枚举内（AUTOMATIC/DRAW/CHAT/DEVELOPMENT/FILE/LIFE/MEDIA/MEMORY/NETWORK/SEARCH/SYSTEM/UTILITY/WORKFLOW/ADMIN）
+□ category 值在 14 个有效枚举内（Automatic/Draw/Chat/Development/File/Life/Media/Memory/Network/Search/System/Utility/Workflow/Admin）
 □ 每个 tool 都有 name、description、parameters
 □ 参数声明包含 name、type、required、description，含格式/默认值/范围说明
 □ 每个非 advice 工具都有对应的 exports.工具名 导出
@@ -2089,7 +2238,7 @@ if (!existsInfo.exists) throw new Error(`找不到本地文件: ${filePath}`);
         }
     ],
     "author": "Author Name",
-    "category": "NETWORK",
+    "category": "Network",
     "enabledByDefault": false,
     "tools": [
         {
@@ -2290,7 +2439,7 @@ exports.test = myApiToolkit.test;
         { "name": "API_A_KEY", "description": { "zh": "API-A 密钥（可选）", "en": "API-A key (optional)" }, "required": false },
         { "name": "API_B_KEY", "description": { "zh": "API-B 密钥（可选）", "en": "API-B key (optional)" }, "required": false }
     ],
-    "category": "SEARCH",
+    "category": "Search",
     "tools": [
         { "name": "search_a", "description": { "zh": "通过 API-A 搜索", "en": "Search via API-A" }, "parameters": [{ "name": "query", "type": "string", "required": true, "description": { "zh": "关键词", "en": "Keywords" } }] },
         { "name": "search_b", "description": { "zh": "通过 API-B 搜索", "en": "Search via API-B" }, "parameters": [{ "name": "query", "type": "string", "required": true, "description": { "zh": "关键词", "en": "Keywords" } }] },
@@ -2356,7 +2505,7 @@ exports.test = multiApiToolkit.test;
     "display_name": { "zh": "系统工具", "en": "System Toolkit" },
     "description": { "zh": "系统管理工具，提供终端命令执行。", "en": "System toolkit with terminal execution." },
     "enabledByDefault": true,
-    "category": "SYSTEM",
+    "category": "System",
     "tools": [
         { "name": "run_command", "description": { "zh": "执行终端命令", "en": "Execute terminal command" }, "parameters": [
             { "name": "command", "type": "string", "required": true, "description": { "zh": "要执行的命令", "en": "Command to execute" } }
@@ -2396,7 +2545,7 @@ exports.run_command = mySystemToolkit.run_command;
     "display_name": { "zh": "文件上传工具", "en": "File Upload Toolkit" },
     "description": { "zh": "文件上传工具。支持将本地文件上传至云端。", "en": "Upload local files to cloud." },
     "env": [{ "name": "UPLOAD_API_KEY", "description": { "zh": "上传服务 API 密钥", "en": "Upload API key" }, "required": true }],
-    "category": "FILE",
+    "category": "File",
     "tools": [
         { "name": "upload_file", "description": { "zh": "上传本地文件", "en": "Upload a local file" }, "parameters": [
             { "name": "file_path", "type": "string", "required": true, "description": { "zh": "本地文件绝对路径", "en": "Local file path" } }
@@ -2467,7 +2616,7 @@ exports.test = myUploadToolkit.test;
     "version": "1.0",
     "display_name": { "zh": "应用唤起工具", "en": "App Launcher" },
     "description": { "zh": "通过 Android Intent 唤起第三方应用功能。", "en": "Launch app features via Android Intent." },
-    "category": "SYSTEM",
+    "category": "System",
     "tools": [
         { "name": "open_feature", "description": { "zh": "打开应用指定功能", "en": "Open app feature" }, "parameters": [
             { "name": "action", "type": "string", "required": true, "description": { "zh": "功能标识", "en": "Feature action" } }
@@ -2519,7 +2668,7 @@ exports.open_feature = myAppLauncher.open_feature;
     "display_name": { "zh": "配置指南", "en": "Config Guide" },
     "description": { "zh": "提供系统配置排查手册和配置操作。", "en": "Config guide and operational tools." },
     "enabledByDefault": true,
-    "category": "SYSTEM",
+    "category": "System",
     "tools": [
         { "name": "troubleshooting_guide", "description": { "zh": "排查手册（给 AI 参考）", "en": "Troubleshooting guide" }, "parameters": [], "advice": true },
         { "name": "get_config", "description": { "zh": "获取当前配置", "en": "Get config" }, "parameters": [] }
@@ -2600,8 +2749,28 @@ exports.get_config = get_config;
 
 ### 12.3 enabledByDefault 策略
 
-- `true`：默认可用，适合核心基础设施工具（code_runner、web、workflow）
+- `true`：默认可用，适合核心基础设施工具（code_runner、web、workflow、super_admin、extended_chat）
 - `false`（默认）：需 `use_package("包名")` 启用，适合专用功能工具
+
+### 12.4 main() 自测函数
+
+部分工具包（如 extended_file_tools.js、extended_http_tools.js）导出一个 `main()` 函数作为包加载时的自测入口。该函数由 `exports.main` 导出，用于验证工具包是否正确加载，但不执行破坏性操作：
+
+```javascript
+async function main() {
+  const results = [];
+  results.push({ tool: 'my_tool_1', result: { success: null, message: '未测试' } });
+  results.push({ tool: 'my_tool_2', result: { success: null, message: '未测试（会修改数据）' } });
+  complete({
+    success: true,
+    message: '工具包加载完成（未执行破坏性测试）',
+    data: { results }
+  });
+}
+exports.main = myToolkit.main;
+```
+
+注意：`main()` 不等同于 `test` 工具。`test` 工具执行真实的连通性诊断，而 `main()` 仅做加载确认。
 
 ---
 
@@ -2626,6 +2795,11 @@ declare function toolCall(
   toolName: string,
   params: Record<string, any>,
 ): Promise<any>;
+declare function toolCall(
+  options: { name: string; params: Record<string, any> },
+): Promise<any>;
+
+declare const OPERIT_CLEAN_ON_EXIT_DIR: string;
 
 declare namespace OkHttp {
   function newClient(): HttpClient;
@@ -2638,7 +2812,7 @@ interface RequestBuilder {
   method(method: string): RequestBuilder;
   header(key: string, value: string): RequestBuilder;
   headers(headers: Record<string, string>): RequestBuilder;
-  body(body: string | object, type: string): RequestBuilder;
+  body(body: string, type: 'json' | 'form' | 'text'): RequestBuilder;
   build(): BuiltRequest;
 }
 interface BuiltRequest {
@@ -2649,6 +2823,10 @@ interface HttpResponse {
   statusCode: number;
   content: string;
   statusMessage: string;
+  headers?: Record<string, string>;
+  contentType?: string;
+  url?: string;
+  size?: number;
 }
 
 declare namespace Tools {
@@ -2683,6 +2861,93 @@ declare namespace Tools {
       url: string,
       savePath: string,
     ): Promise<{ success: boolean }>;
+    function move(
+      source: string,
+      destination: string,
+      env?: string,
+    ): Promise<any>;
+    function copy(
+      source: string,
+      destination: string,
+      recursive?: boolean,
+      sourceEnv?: string,
+      destEnv?: string,
+    ): Promise<any>;
+    function info(path: string, env?: string): Promise<any>;
+    function zip(
+      source: string,
+      destination: string,
+      env?: string,
+    ): Promise<any>;
+    function unzip(
+      source: string,
+      destination: string,
+      env?: string,
+    ): Promise<any>;
+    function open(path: string, env?: string): Promise<any>;
+    function share(
+      path: string,
+      title?: string,
+      env?: string,
+    ): Promise<any>;
+  }
+  namespace Memory {
+    function create(
+      title: string,
+      content: string,
+      contentType?: string,
+      source?: string,
+      folderPath?: string,
+      tags?: string,
+    ): Promise<string>;
+    function update(
+      oldTitle: string,
+      updates: {
+        newTitle?: string;
+        content?: string;
+        contentType?: string;
+        source?: string;
+        credibility?: number;
+        importance?: number;
+        folderPath?: string;
+        tags?: string;
+      },
+    ): Promise<string>;
+    function deleteMemory(title: string): Promise<string>;
+    function move(
+      targetFolderPath: string,
+      titles?: string[],
+      sourceFolderPath?: string,
+    ): Promise<string>;
+    function link(
+      sourceTitle: string,
+      targetTitle: string,
+      linkType?: string,
+      weight?: number,
+      description?: string,
+    ): Promise<any>;
+    function queryLinks(
+      linkId?: number,
+      sourceTitle?: string,
+      targetTitle?: string,
+      linkType?: string,
+      limit?: number,
+    ): Promise<any>;
+    function updateLink(
+      linkId?: number,
+      sourceTitle?: string,
+      targetTitle?: string,
+      linkType?: string,
+      newLinkType?: string,
+      weight?: number,
+      description?: string,
+    ): Promise<any>;
+    function deleteLink(
+      linkId?: number,
+      sourceTitle?: string,
+      targetTitle?: string,
+      linkType?: string,
+    ): Promise<any>;
   }
   namespace Net {
     function uploadFile(params: {
@@ -2713,6 +2978,15 @@ declare namespace Tools {
     function intent(params: any): Promise<any>;
     function getDeviceInfo(): Promise<any>;
     function getLocation(highAccuracy: boolean, timeout: number): Promise<any>;
+    function getNotifications(
+      limit?: number,
+      includeOngoing?: boolean,
+    ): Promise<any>;
+    function installApp(apkPath: string): Promise<any>;
+    function startApp(
+      packageName: string,
+      activity?: string,
+    ): Promise<any>;
     namespace terminal {
       function create(name: string): Promise<{ sessionId: string }>;
       function exec(
@@ -2735,9 +3009,18 @@ declare namespace Tools {
     ): Promise<any>;
     function readEnvironmentVariable(key: string): Promise<any>;
     function writeEnvironmentVariable(key: string, value: string): Promise<any>;
+    function restartMcpWithLogs(timeoutMs?: number): Promise<any>;
     function listModelConfigs(): Promise<any>;
     function createModelConfig(options: any): Promise<any>;
+    function updateModelConfig(configId: string, updates: any): Promise<any>;
+    function deleteModelConfig(configId: string): Promise<any>;
     function testModelConfigConnection(
+      configId: string,
+      modelIndex?: number,
+    ): Promise<any>;
+    function getFunctionModelConfig(functionType: string): Promise<any>;
+    function setFunctionModelConfig(
+      functionType: string,
       configId: string,
       modelIndex?: number,
     ): Promise<any>;
@@ -3058,19 +3341,24 @@ const message =
 
 ### 16.1 什么是 ToolPkg
 
-ToolPkg 是将多个相关工具脚本、资源文件和 UI 模块打包成单一 `.toolpkg` 文件（本质是 ZIP 压缩包）的标准格式。
+ToolPkg 是将多个相关工具脚本、资源文件和 UI 模块打包成单一 `.toolpkg` 文件（本质是 ZIP 压缩包）的标准格式。相较于单个 `.js` 脚本，ToolPkg 支持多子包组织、资源文件打包、Compose DSL UI 模块、生命周期钩子和多语言内置支持。
 
 ### 16.2 文件结构
 
 ```
 my_package.toolpkg (ZIP)
 ├── manifest.json                    # 清单文件（必需）
+├── main.js                          # ToolPkg 主入口脚本（必需）
 ├── packages/                        # 子包脚本目录
-│   └── my_tool.js
+│   └── my_tool.js                   # 子包脚本（含 METADATA）
 ├── ui/                              # UI 模块目录（可选）
-│   └── setup/index.ui.js
+│   └── setup/
+│       └── index.ui.js
 ├── resources/                       # 资源文件目录（可选）
+│   └── data/config.json
 └── i18n/                            # 国际化文件（可选）
+    ├── zh-CN.js
+    └── en-US.js
 ```
 
 ### 16.3 manifest.json 核心字段
@@ -3080,27 +3368,179 @@ my_package.toolpkg (ZIP)
   "schema_version": 1,
   "toolpkg_id": "com.operit.my_package",
   "version": "1.0.0",
+  "main": "main.js",
   "display_name": { "zh": "工具包名", "en": "Package Name" },
   "description": { "zh": "描述", "en": "Description" },
   "subpackages": [
     {
       "id": "my_tool",
       "entry": "packages/my_tool.js",
-      "enabled_by_default": false
+      "enabled_by_default": false,
+      "display_name": { "zh": "子包名", "en": "Sub Package" },
+      "description": { "zh": "子包描述", "en": "Sub description" }
     }
   ],
-  "ui_modules": [
+  "resources": [
     {
-      "id": "setup_ui",
-      "runtime": "compose_dsl",
-      "entry": "ui/setup/index.ui.js",
-      "show_in_package_manager": true
+      "key": "config_data",
+      "path": "resources/data/config.json",
+      "mime": "application/json"
     }
   ]
 }
 ```
 
-### 16.4 打包与部署
+| 字段               | 类型           | 必需 | 说明                                                       |
+| ------------------ | -------------- | ---- | ---------------------------------------------------------- |
+| `schema_version`   | number         | 是   | 清单架构版本，当前为 `1`                                   |
+| `toolpkg_id`       | string         | 是   | 唯一标识符，反向域名格式（如 `com.operit.my_package`）     |
+| `version`          | string         | 建议 | 语义化版本号（如 `1.0.0`）                                 |
+| `main`             | string         | 是   | 主入口脚本路径（相对于 ZIP 根目录）                        |
+| `display_name`     | LocalizedText  | 建议 | 显示名称                                                   |
+| `description`      | LocalizedText  | 建议 | 描述信息                                                   |
+| `subpackages`      | array          | 否   | 子包列表                                                   |
+| `resources`        | array          | 否   | 资源文件列表                                               |
+
+子包脚本必须是标准 JavaScript 文件且包含 `METADATA` 注释块。子包中定义的工具注册为 `<subpackage_id>:<tool_name>` 格式。
+
+### 16.4 main.js 入口与注册
+
+ToolPkg 的 UI 模块和生命周期钩子通过 `main.js` 脚本中的 `registerToolPkg()` 函数注册：
+
+```javascript
+const toolboxUI = require("./ui/setup/index.ui.js").default;
+
+function registerToolPkg() {
+  // 注册工具箱 UI 模块
+  ToolPkg.registerToolboxUiModule({
+    id: "my_setup",
+    runtime: "compose_dsl",
+    screen: toolboxUI,
+    params: {},
+    title: { zh: "配置界面", en: "Setup" }
+  });
+
+  // 注册应用生命周期钩子
+  ToolPkg.registerAppLifecycleHook({
+    id: "my_app_create",
+    event: "application_on_create",
+    function: (event) => { return { ok: true }; }
+  });
+
+  // 注册消息处理插件
+  ToolPkg.registerMessageProcessingPlugin({
+    id: "my_message_plugin",
+    function: (event) => {
+      const msg = String(event.eventPayload?.messageContent ?? "").trim();
+      if (!msg.startsWith("/my_cmd")) return { matched: false };
+      return { matched: true, text: "已处理" };
+    }
+  });
+
+  // 注册 XML 渲染插件
+  ToolPkg.registerXmlRenderPlugin({
+    id: "my_xml",
+    tag: "my_tag",
+    function: (event) => {
+      if (!event.eventPayload?.xmlContent) return { handled: false };
+      return { handled: true, text: "渲染完成" };
+    }
+  });
+
+  // 注册输入菜单开关插件
+  ToolPkg.registerInputMenuTogglePlugin({
+    id: "my_toggle",
+    function: (event) => {
+      if (event.eventPayload?.action === "create") {
+        return [{ id: "my_feature", title: "My Feature", isChecked: false }];
+      }
+      return [];
+    }
+  });
+
+  return true;
+}
+
+exports.registerToolPkg = registerToolPkg;
+```
+
+### 16.5 ToolPkg 注册 API 速查
+
+| 注册方法                                     | 核心字段                         | 用途               |
+| -------------------------------------------- | -------------------------------- | ------------------ |
+| `ToolPkg.registerToolboxUiModule(def)`       | id, screen, title                | 工具箱 UI 模块     |
+| `ToolPkg.registerAppLifecycleHook(def)`      | id, event, function              | 应用生命周期钩子   |
+| `ToolPkg.registerMessageProcessingPlugin(def)` | id, function                   | 消息处理插件       |
+| `ToolPkg.registerXmlRenderPlugin(def)`       | id, tag, function                | XML 渲染插件       |
+| `ToolPkg.registerInputMenuTogglePlugin(def)` | id, function                     | 输入菜单开关       |
+| `ToolPkg.registerToolLifecycleHook(def)`     | id, function                     | 工具执行生命周期   |
+| `ToolPkg.registerPromptInputHook(def)`       | id, function                     | Prompt 输入钩子    |
+| `ToolPkg.registerPromptHistoryHook(def)`     | id, function                     | Prompt 历史钩子    |
+| `ToolPkg.registerSystemPromptComposeHook(def)` | id, function                   | 系统提示词组合钩子 |
+| `ToolPkg.registerToolPromptComposeHook(def)` | id, function                     | 工具提示词组合钩子 |
+| `ToolPkg.registerPromptFinalizeHook(def)`    | id, function                     | Prompt 最终化钩子  |
+
+生命周期事件枚举：`application_on_create`、`application_on_foreground`、`application_on_background`、`application_on_low_memory`、`application_on_trim_memory`、`application_on_terminate`、`activity_on_create`、`activity_on_start`、`activity_on_resume`、`activity_on_pause`、`activity_on_stop`、`activity_on_destroy`。
+
+### 16.6 Compose DSL UI 模块
+
+UI 模块使用基于 JavaScript 的声明式 UI 框架，灵感来自 Jetpack Compose。
+
+```javascript
+function Screen(ctx) {
+  const [url, setUrl] = ctx.useState('url', '');
+
+  async function handleConnect() {
+    const result = await ctx.callTool('my_tool:test_connection', { url });
+    await ctx.showToast(result.success ? '连接成功' : '连接失败: ' + result.error);
+  }
+
+  return ctx.UI.Column({ padding: 16 }, [
+    ctx.UI.Text({ text: '配置面板', fontSize: 20, bold: true }),
+    ctx.UI.Spacer({ height: 16 }),
+    ctx.UI.TextField({ value: url, onValueChange: setUrl, label: '地址' }),
+    ctx.UI.Spacer({ height: 16 }),
+    ctx.UI.Button({ text: '测试连接', onClick: handleConnect })
+  ]);
+}
+
+exports.default = Screen;
+```
+
+**可用布局组件**：Column、Row、Box、Spacer、LazyColumn
+
+**可用基础组件**：Text、TextField、Button、IconButton、Switch、Checkbox、Card、Icon、LinearProgressIndicator、CircularProgressIndicator
+
+**Context API**：
+
+```javascript
+// 状态管理
+const [value, setValue] = ctx.useState('key', initialValue);
+const memoValue = ctx.useMemo('key', () => computeValue(), [deps]);
+
+// 工具调用
+const result = await ctx.callTool('package:tool_name', { param: value });
+
+// 环境变量
+const apiKey = ctx.getEnv('API_KEY');
+await ctx.setEnv('API_KEY', 'new_value');
+await ctx.setEnvs({ API_KEY: 'v1', TOKEN: 'v2' });
+
+// 资源访问
+const filePath = await ctx.readResource('resource_key');
+
+// 包管理
+await ctx.importPackage('package_name');
+await ctx.usePackage('package_name');
+const packages = await ctx.listImportedPackages();
+
+// UI 交互
+await ctx.showToast('消息内容');
+await ctx.navigate('/route', { param: value });
+ctx.reportError(error);
+```
+
+### 16.7 打包与部署
 
 ```bash
 cd my_package_dir && zip -r ../my_package.toolpkg *
@@ -3146,9 +3586,22 @@ cd my_package_dir && zip -r ../my_package.toolpkg *
 
 ## 附录 A：全局常量/变量参考
 
-| 名称                       | 类型   | 说明                         |
-| -------------------------- | ------ | ---------------------------- |
-| `OPERIT_CLEAN_ON_EXIT_DIR` | string | 退出时自动清理的临时目录路径 |
+| 名称                       | 类型   | 说明                                                 |
+| -------------------------- | ------ | ---------------------------------------------------- |
+| `OPERIT_CLEAN_ON_EXIT_DIR` | string | 退出时自动清理的临时目录路径，适合存放中间文件和大输出 |
+
+`OPERIT_CLEAN_ON_EXIT_DIR` 使用示例（长输出保存到临时文件，避免上下文溢出）：
+
+```javascript
+async function saveToTempFile(content, ext) {
+  await Tools.Files.mkdir(OPERIT_CLEAN_ON_EXIT_DIR, true);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const rand = Math.floor(Math.random() * 1000000);
+  const filePath = `${OPERIT_CLEAN_ON_EXIT_DIR}/output_${timestamp}_${rand}.${ext}`;
+  await Tools.Files.write(filePath, content, false);
+  return filePath;
+}
+```
 
 ## 附录 B：JSONP 解析技巧
 
@@ -3245,7 +3698,7 @@ function generateSafeFileName(prefix) {
 - ❌ 在日志中打印完整密钥
 - ❌ 使用全局变量污染命名空间
 - ❌ 工具名使用非小写下划线格式
-- ❌ category 使用 14 个枚举外的值
+- ❌ category 使用 14 个枚举外的值或格式不正确（必须 Title Case）
 
 ### API 速查
 
@@ -3254,7 +3707,8 @@ complete(result)                      → 返回结果（必调）
 getEnv(key)                           → 读环境变量
 getLang()                             → 获取语言
 sendIntermediateResult(result)        → 推送进度
-toolCall(toolName, params)            → 跨包调用
+toolCall(toolName, params)            → 跨包调用（双参数形式）
+toolCall({ name, params })            → 跨包调用（对象形式）
 
 OkHttp.newClient()                    → 创建 HTTP 客户端
   .newRequest().url(u).method(m)      → 构建请求
@@ -3263,12 +3717,17 @@ OkHttp.newClient()                    → 创建 HTTP 客户端
   .build().execute()                  → 执行请求
 
 Tools.Files.exists/read/readBinary/write/writeBinary/mkdir/list/download
+Tools.Files.move/copy/info/zip/unzip/open/share
 Tools.Net.uploadFile/visit
-Tools.Net.Web.start/goto/click/fill/evaluate/snapshot/screenshot/close
+Tools.Net.Web.start/goto/click/fill/evaluate/wait_for/snapshot/screenshot/scroll/close/download_file
 Tools.visit_web({ url, user_agent_preset, timeout })
+Tools.Memory.create/update/deleteMemory/move/link/queryLinks/updateLink/deleteLink
 Tools.System.terminal.create/exec/screen/input
-Tools.System.shell/intent/sleep/getDeviceInfo/getLocation
-Tools.SoftwareSettings.listSandboxPackages/readEnvironmentVariable/listModelConfigs
+Tools.System.shell/intent/sleep/getDeviceInfo/getLocation/getNotifications/installApp/startApp
+Tools.SoftwareSettings.listSandboxPackages/readEnvironmentVariable/writeEnvironmentVariable
+Tools.SoftwareSettings.listModelConfigs/createModelConfig/updateModelConfig/deleteModelConfig
+Tools.SoftwareSettings.testModelConfigConnection/getFunctionModelConfig/setFunctionModelConfig
+CryptoJS.enc.Utf8/Base64              → 加解密操作
 ```
 
 ---
@@ -3277,16 +3736,15 @@ Tools.SoftwareSettings.listSandboxPackages/readEnvironmentVariable/listModelConf
 
 ### v1.0 (2025-07)
 
-- 初始版本
-- 基于 20+ 个生产级工具包源码深度提炼
+- 基于 20+ 个生产级工具包源码深度提炼的首版开发指南
 - 覆盖 METADATA 协议、代码架构、运行时 API、设计模式、安全规范
 - 包含 6 种完整工具包模板（网络 API、多 API 聚合、系统操作、文件上传、Intent 唤起、Advice）
-- 完整 TypeScript 类型定义
+- 完整 TypeScript 类型定义（含 `toolCall` 双签名、`Tools.Memory`、`Tools.Files` 扩展操作等）
+- 详细的 ToolPkg 打包格式说明（含 main.js 注册模式、Compose DSL UI 模块、Context API）
 - 生产案例索引（含行数统计）与排查指南
-- 支持 ToolPkg 打包格式说明
 
 ---
 
 > **文档版本**：v1.0  
-> **提炼源码**：bilibili_search、csdn_search、various_search、web、code_runner、workflow、extended_memory_tools、beeimg_upload、baidumap_navigation、recipe_search、zhipu_search、developer_search、anime_search、userscript_search、ikbs_pysearch、image_search、arxiv_assistant、weather_reporter、toolkit_index、tavily_search 等 20+ 个生产级工具包  
+> **提炼源码**：bilibili_search、csdn_search、various_search、web、code_runner、workflow、extended_memory_tools、extended_file_tools、extended_http_tools、extended_chat、super_admin、all_about_myself、operit_search、operit_upgrade、deepwiki_search、beeimg_upload、baidumap_navigation、recipe_search、zhipu_search、developer_search、anime_search、userscript_search、ikbs_pysearch、image_search、arxiv_assistant、weather_reporter 等 20+ 个生产级工具包  
 > **核心定位**：作为 SKILL 文件，本指南旨在为 AI Agent 提供完整的工具包开发知识，使其能够自主设计、编写和部署符合 Operit 规范的高质量工具包。
